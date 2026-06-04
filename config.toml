@@ -1,4 +1,4 @@
-baseURL = "https://danysk.github.io/Template-Hugo-Reveal-Slides"
+baseURL = "https://danysk.github.io/slides-2026-coordination-gossip/"
 languageCode = "en-us"
 title = "A Hugo theme for creating Reveal.js presentations"
 disableKinds = ["sitemap", "RSS"]
@@ -67,5 +67,4 @@ enableSourceMap = true
   [security.http]
     methods = ['(?i)GET|POST']
     urls = ['.*']
-
 

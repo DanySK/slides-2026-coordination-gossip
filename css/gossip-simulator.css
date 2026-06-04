@@ -1,0 +1,43 @@
+.gossip-demo {
+  --panel-bg: rgb(255 255 255 / 0.88);
+  --panel-border: rgb(0 0 0 / 0.16);
+  position: relative;
+  width: 100%;
+  height: min(72vh, 720px);
+  overflow: hidden;
+  border: 0.08em solid var(--panel-border);
+  border-radius: 0.5em;
+  background: #fff;
+  color: #111;
+  font-size: 0.42em;
+}
+
+.gossip-demo__canvas {
+  display: block;
+  width: 100%;
+  height: 100%;
+}
+
+.gossip-demo__toolbar,
+.gossip-demo__hud {
+  position: absolute;
+  z-index: 2;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.6em;
+  align-items: center;
+  padding: 0.55em 0.7em;
+  border: 1px solid var(--panel-border);
+  border-radius: 0.55em;
+  background: var(--panel-bg);
+  backdrop-filter: blur(0.25em);
+}
+
+.gossip-demo__toolbar { top: 0.7em; left: 0.7em; right: 0.7em; }
+.gossip-demo__hud { right: 0.7em; bottom: 0.7em; }
+.gossip-demo label { display: inline-flex; gap: 0.35em; align-items: center; margin: 0; white-space: nowrap; }
+.gossip-demo__experiment { white-space: nowrap; }
+.gossip-demo input[type="range"] { width: 8.5em; }
+.gossip-demo select,
+.gossip-demo button { font: inherit; }
+.gossip-demo output { min-width: 2.8em; font-variant-numeric: tabular-nums; text-align: right; }

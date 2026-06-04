@@ -72,6 +72,7 @@
       this.devices = [];
       this.selectedIds = new Set();
       this.drag = null;
+      this.initialized = false;
     }
 
     start() {
@@ -95,8 +96,8 @@
       });
       addEventListener("resize", () => this.resize());
       this.updateLabels();
-      this.reset();
       this.resize();
+      this.activateIfVisible();
       requestAnimationFrame(() => this.loop());
     }
 
@@ -124,6 +125,23 @@
       return { width: Math.max(1, rect.width), height: Math.max(1, rect.height) };
     }
 
+    isVisible() {
+      const reveal = globalThis.Reveal;
+      const currentSlide = reveal?.getCurrentSlide?.();
+      if (currentSlide) return currentSlide.contains(this.root);
+      return this.root.offsetParent !== null;
+    }
+
+    activateIfVisible() {
+      if (!this.isVisible()) return false;
+      this.resize();
+      if (!this.initialized) {
+        this.initialized = true;
+        this.reset();
+      }
+      return true;
+    }
+
     resize() {
       const dpr = devicePixelRatio || 1;
       const { width, height } = this.bounds();
@@ -135,6 +153,7 @@
     reset() {
       const count = Number(this.controls.nodes.value);
       const { width, height } = this.bounds();
+      this.initialized = true;
       this.devices = Array.from({ length: count }, (_, id) => {
         const angle = Math.random() * Math.PI * 2;
         return { id, x: Math.random() * width, y: Math.random() * height, vx: Math.cos(angle), vy: Math.sin(angle), value: id, resultLabel: String(id) };
@@ -148,7 +167,7 @@
     }
 
     loop() {
-      this.tick();
+      if (this.activateIfVisible()) this.tick();
       requestAnimationFrame(() => this.loop());
     }
 

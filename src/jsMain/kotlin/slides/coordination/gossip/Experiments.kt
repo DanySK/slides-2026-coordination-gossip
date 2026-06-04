@@ -57,12 +57,11 @@ private fun installExperiments() {
     registry["component-min"] = ::componentMin
     registerCollektive(registry, "gradient") { this.gradient() }
     registerCollektive(registry, "standard-gossip") {
-        share(localId to 0) { field -> field.all.values.minBy { it.first }.let { it.first to it.second + 1 } }
+        share(localId) { it.all.values.min() }
     }
     registerCollektive(registry, "gossip-min") { gossipMin(localId) }
     registerCollektive(registry, "gossip-union") {
-        share(setOf(localId)) { it.all.values.reduce { a: Set<Int>, b: Set<Int> -> a + b } }
-
+        share(listOf(localId)) { it.all.values.reduce { a, b -> a + b }.distinct().sorted() }
     }
 }
 

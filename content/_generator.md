@@ -20,6 +20,7 @@ outputs = ["Reveal"]
   - values can only adjust in one direction 
   - In other words, classic gossip is **not self-stabilizing** (cf. Dijkstra 1974¹)
 - Once a stale or corrupted “best” value appears, it can persist forever
+  - Gossip protocols are inherently **asymmetric**
 
 {{< gossip-playground experiment="standard-gossip" nodes=100 >}}
 
@@ -27,9 +28,21 @@ outputs = ["Reveal"]
 
 ---
 
-## Classic gossip: non-self-stabilizing
+## Gossip merge functions
 
-{{< gossip-playground experiment="standard-gossip" >}}
+Gossip algorithms merge values using functions that are:
+- **idempotent**: $f(x, f(x, y)) = f(x, y)$, and
+- **commutative**: $f(x, y) = f(y, x)$.
+
+The final network value **depends on all the inputs**. Set union is a valid function example:
+
+{{< gossip-playground experiment="gossip-union" nodes=15 range=300 >}}
+
+---
+
+## Min-max consensus 
+
+Min-max consensus algorithms are a special case of gossip, where the correct value depends **on a single input**. Typical cases are *minimum* and *maximum* selection.
 
 ---
 

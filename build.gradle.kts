@@ -14,7 +14,6 @@ kotlin {
         browser {
             commonWebpackConfig {
                 outputFileName = "collektive-experiments.js"
-//                devtool = KotlinWebpackConfig.Devtool.SOURCE_MAP
             }
         }
         binaries.executable()
@@ -33,7 +32,7 @@ kotlin {
 tasks.register<Copy>("syncCollektiveExperimentsToHugoStatic") {
     group = "distribution"
     description = "Copies the Kotlin/JS browser bundle into Hugo static assets."
-
+    val target = layout.projectDirectory.dir("static/js")
     dependsOn(tasks.named("jsBrowserDistribution"))
     outputs.upToDateWhen { false }
 
@@ -41,7 +40,10 @@ tasks.register<Copy>("syncCollektiveExperimentsToHugoStatic") {
         include("collektive-experiments.js")
         include("collektive-experiments.js.map")
     }
-    into(layout.projectDirectory.dir("static/js"))
+    into(target)
+    doFirst {
+        target.asFile.walkTopDown().filter { it.name.startsWith("collektive-experiments") }.forEach { it.delete()}
+    }
 }
 
 tasks.matching { it.name in setOf("jsBrowserProductionWebpack", "jsBrowserDistribution") }.configureEach {

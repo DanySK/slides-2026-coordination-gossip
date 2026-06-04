@@ -52,12 +52,18 @@
   }
 
   class Demo {
+    static nextId = 0;
+
     constructor(root) {
       this.root = root;
+      this.instanceId = `gossip-demo-${Demo.nextId++}`;
       this.canvas = root.querySelector(".gossip-demo__canvas");
       this.ctx = this.canvas.getContext("2d");
       this.controls = Object.fromEntries(
-        ["experiment", "nodes", "range", "mobility", "reset", "delete"].map((name) => [name, root.querySelector(`[data-control="${name}"]`)]),
+        ["experiment", "nodes", "range", "mobility", "reset", "reset-memory", "delete"].map((name) => [
+          name,
+          root.querySelector(`[data-control="${name}"]`),
+        ]),
       );
       this.outputs = Object.fromEntries(
         ["backend", "edges", "experiment", "nodes", "range", "mobility"].map((name) => [name, root.querySelector(`[data-output="${name}"]`)]),
@@ -78,6 +84,7 @@
       }
       this.controls.experiment?.addEventListener("focus", () => this.refreshExperiments());
       this.controls.reset.addEventListener("click", () => this.reset());
+      this.controls["reset-memory"]?.addEventListener("click", () => this.resetMemory());
       this.controls.delete?.addEventListener("click", () => this.deleteSelected());
       this.canvas.addEventListener("pointerdown", (event) => this.pointerDown(event));
       this.canvas.addEventListener("pointermove", (event) => this.pointerMove(event));
@@ -133,6 +140,11 @@
         return { id, x: Math.random() * width, y: Math.random() * height, vx: Math.cos(angle), vy: Math.sin(angle), value: id, resultLabel: String(id) };
       });
       this.selectedIds.clear();
+      this.resetMemory();
+    }
+
+    resetMemory() {
+      experiments()[this.experimentName()]?.reset?.(this.instanceId);
     }
 
     loop() {
@@ -144,6 +156,7 @@
       this.move();
       const edges = this.edges();
       const snapshot = {
+        instanceId: this.instanceId,
         nodes: this.devices.map(({ id, x, y, value }) => ({ id, x, y, value })),
         edges,
         parameters: { communicationRange: Number(this.controls.range.value), mobility: Number(this.controls.mobility.value) },
@@ -161,11 +174,19 @@
         this.outputs.backend.textContent = "fallback after error";
       }
       const byId = this.devicesById();
+      const updated = new Set();
       for (const output of outputs) {
         const device = byId.get(output.id);
         if (device) {
           device.value = Number(output.value ?? 0);
           device.resultLabel = String(output.label ?? output.value ?? "");
+          updated.add(device.id);
+        }
+      }
+      for (const device of this.devices) {
+        if (!updated.has(device.id)) {
+          device.value = Number.NaN;
+          device.resultLabel = "no output";
         }
       }
       this.outputs.edges.textContent = String(edges.length);

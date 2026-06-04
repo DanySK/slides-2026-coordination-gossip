@@ -14,17 +14,28 @@ outputs = ["Reveal"]
 
 ---
 
-## Problem
+## Context: gossip algorithms
 
-- Gossip is scalable and decentralized
-- Classical min/max gossip is **not self-stabilizing**
+- Gossip is scalable and decentralized, but **monotonic**
+  - values can only adjust in one direction 
+  - In other words, classic gossip is **not self-stabilizing** (cf. Dijkstra 1974¹)
 - Once a stale or corrupted “best” value appears, it can persist forever
+
+{{< gossip-playground experiment="standard-gossip" nodes=100 >}}
+
+<small>1. *Self-stabilizing systems in spite of distributed control* https://dl.acm.org/doi/10.1145/361179.361202</small>
 
 ---
 
 ## Classic gossip: non-self-stabilizing
 
 {{< gossip-playground experiment="standard-gossip" >}}
+
+---
+
+## Classic gossip: non-self-stabilizing
+
+{{< gossip-playground experiment="gossip-min" >}}
 
 ---
 

@@ -11,8 +11,15 @@ import it.unibo.collektive.path.FullPathFactory
 import it.unibo.collektive.path.Path
 import it.unibo.collektive.state.State
 import it.unibo.collektive.stdlib.collapse.max
+import it.unibo.collektive.stdlib.collapse.min
+import it.unibo.collektive.stdlib.collapse.minBy
+import it.unibo.collektive.stdlib.collapse.reduce
+import it.unibo.collektive.stdlib.spreading.gossipMin
 import it.unibo.collektive.stdlib.spreading.hopGradientCast
 import kotlin.js.json
+import kotlin.math.abs
+import kotlin.math.pow
+import kotlin.math.round
 
 /**
  * Browser entry point for Collektive-backed experiments.
@@ -43,42 +50,48 @@ fun Aggregate<Int>.gradient() = hopGradientCast(localId == 2, 0) { fromSource, t
 fun Aggregate<Int>.gradient2() = hopGradientCast(localId == 0, 0) { fromSource, toNeighbor, data -> fromSource }
 fun Aggregate<Int>.gradient3() = hopGradientCast(localId == 0, 0) { fromSource, toNeighbor, data -> fromSource }
 
-fun Aggregate<Int>.standardGossip() = share(localId) { ids: Field<Int, Int> ->
-    ids.all.values.max()
-//    2
-}
 
 private fun installExperiments() {
     val registry = experimentsRegistry()
     registry["degree"] = ::degree
     registry["component-min"] = ::componentMin
-    registry["gradient"] = CollektiveRuntime { gradient() }::run
-    registry["standard-gossip"] = CollektiveRuntime { standardGossip() }::run
-    registry["gradient3"] = CollektiveRuntime { gradient3() }::run
+    registerCollektive(registry, "gradient") { this.gradient() }
+    registerCollektive(registry, "standard-gossip") {
+        share(localId to 0) { field -> field.all.values.minBy { it.first }.let { it.first to it.second + 1 } }
+    }
+    registerCollektive(registry, "gossip-min") { gossipMin(localId) }
+    registerCollektive(registry, "gossip-union") {
+        share(setOf(localId)) { it.all.values.reduce { a: Set<Int>, b: Set<Int> -> a + b } }
+
+    }
 }
 
 private class CollektiveRuntime(
     private val program: Aggregate<Int>.() -> Any?,
 ) {
-    private var states: MutableMap<Int, State> = mutableMapOf()
-    private var inboundMessages: Map<Int, List<Message<Int, *>>> = emptyMap()
+    private val memories: MutableMap<String, RuntimeMemory> = mutableMapOf()
+
+    fun reset(instanceId: String?) {
+        if (instanceId == null) memories.clear() else memories.remove(instanceId)
+    }
 
     fun run(snapshot: Snapshot): Array<DeviceOutput> {
+        val memory = memories.getOrPut(snapshot.instanceId ?: "default") { RuntimeMemory() }
         val nodeIds = snapshot.nodes.map { it.id }.toSet()
         val neighbors = snapshot.neighborsByNode()
-        states = states.filterKeys { it in nodeIds }.toMutableMap()
-        inboundMessages = inboundMessages.filterKeys { it in nodeIds }
+        memory.states = memory.states.filterKeys { it in nodeIds }.toMutableMap()
+        memory.inboundMessages = memory.inboundMessages.filterKeys { it in nodeIds }
 
         val results = snapshot.nodes.associate { node ->
             val result = Collektive.aggregate(
                 localId = node.id,
-                previousState = states[node.id] ?: emptyMap(),
-                inbound = inboundData(node.id, neighbors.getValue(node.id), inboundMessages[node.id].orEmpty()),
+                previousState = memory.states[node.id] ?: emptyMap(),
+                inbound = inboundData(node.id, neighbors.getValue(node.id), memory.inboundMessages[node.id].orEmpty()),
                 inMemory = true,
                 pathFactory = FullPathFactory,
                 compute = program,
             )
-            states[node.id] = result.newState
+            memory.states[node.id] = result.newState
             node.id to result
         }
 
@@ -88,7 +101,7 @@ private class CollektiveRuntime(
                 nextInbound.getValue(receiver).add(result.toSend.prepareMessageFor(receiver))
             }
         }
-        inboundMessages = nextInbound
+        memory.inboundMessages = nextInbound
 
         return snapshot.nodes.map { node ->
             output(node.id, results.getValue(node.id).result)
@@ -122,6 +135,18 @@ private class CollektiveRuntime(
 
             override fun toString(): String = "InboundData(localId=$localId, neighbors=$neighbors)"
         }
+}
+
+private data class RuntimeMemory(
+    var states: MutableMap<Int, State> = mutableMapOf(),
+    var inboundMessages: Map<Int, List<Message<Int, *>>> = emptyMap(),
+)
+
+private fun registerCollektive(registry: dynamic, name: String, program: Aggregate<Int>.() -> Any?) {
+    val runtime = CollektiveRuntime(program)
+    val run: Experiment = runtime::run
+    run.asDynamic().reset = runtime::reset
+    registry[name] = run
 }
 
 private fun degree(snapshot: Snapshot): Array<DeviceOutput> {
@@ -195,6 +220,7 @@ private fun experimentsRegistry(): dynamic {
 private typealias Experiment = (Snapshot) -> Array<DeviceOutput>
 
 private external interface Snapshot {
+    val instanceId: String?
     val nodes: Array<Node>
     val edges: Array<Edge>
     val parameters: Parameters

@@ -1,6 +1,7 @@
 public/
 build/
 _gen/
+.gradle/
 *.pdf
 *.hprof
 *build.lock

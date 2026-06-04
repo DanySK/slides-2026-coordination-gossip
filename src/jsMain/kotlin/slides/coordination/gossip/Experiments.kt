@@ -1,12 +1,16 @@
 package slides.coordination.gossip
 
 import it.unibo.collektive.Collektive
+import it.unibo.collektive.aggregate.Field
 import it.unibo.collektive.aggregate.api.Aggregate
+import it.unibo.collektive.aggregate.api.share
+import it.unibo.collektive.aggregate.values
 import it.unibo.collektive.networking.Message
 import it.unibo.collektive.networking.NeighborsData
 import it.unibo.collektive.path.FullPathFactory
 import it.unibo.collektive.path.Path
 import it.unibo.collektive.state.State
+import it.unibo.collektive.stdlib.collapse.max
 import it.unibo.collektive.stdlib.spreading.hopGradientCast
 import kotlin.js.json
 
@@ -35,21 +39,26 @@ fun main() {
     installExperiments()
 }
 
-fun Aggregate<Int>.gradient() = hopGradientCast(localId == 0, 0) { fromSource, toNeighbor, data -> fromSource + toNeighbor }
+fun Aggregate<Int>.gradient() = hopGradientCast(localId == 2, 0) { fromSource, toNeighbor, data -> fromSource + toNeighbor }
 fun Aggregate<Int>.gradient2() = hopGradientCast(localId == 0, 0) { fromSource, toNeighbor, data -> fromSource }
 fun Aggregate<Int>.gradient3() = hopGradientCast(localId == 0, 0) { fromSource, toNeighbor, data -> fromSource }
+
+fun Aggregate<Int>.standardGossip() = share(localId) { ids: Field<Int, Int> ->
+    ids.all.values.max()
+//    2
+}
 
 private fun installExperiments() {
     val registry = experimentsRegistry()
     registry["degree"] = ::degree
     registry["component-min"] = ::componentMin
     registry["gradient"] = CollektiveRuntime { gradient() }::run
-    registry["gradient2"] = CollektiveRuntime { gradient2() }::run
+    registry["standard-gossip"] = CollektiveRuntime { standardGossip() }::run
     registry["gradient3"] = CollektiveRuntime { gradient3() }::run
 }
 
 private class CollektiveRuntime(
-    private val program: Aggregate<Int>.() -> Int,
+    private val program: Aggregate<Int>.() -> Any?,
 ) {
     private var states: MutableMap<Int, State> = mutableMapOf()
     private var inboundMessages: Map<Int, List<Message<Int, *>>> = emptyMap()
@@ -160,12 +169,21 @@ private fun componentMin(snapshot: Snapshot): Array<DeviceOutput> {
     }.toTypedArray()
 }
 
-private fun output(id: Int, value: Int): DeviceOutput =
+private fun output(id: Int, result: Any?): DeviceOutput =
     json(
         "id" to id,
-        "value" to value,
-        "label" to value.toString(),
+        "value" to colorValue(result),
+        "label" to result.toString(),
     ).unsafeCast<DeviceOutput>()
+
+private fun colorValue(result: Any?): Double =
+    when (result) {
+        is Number -> result.toDouble()
+        is Collection<*> -> result.size.toDouble()
+        is Map<*, *> -> result.size.toDouble()
+        is Array<*> -> result.size.toDouble()
+        else -> 0.0
+    }
 
 private fun experimentsRegistry(): dynamic {
     val global = js("globalThis")
@@ -201,6 +219,6 @@ private external interface Parameters {
 
 private external interface DeviceOutput {
     val id: Int
-    val value: Int
+    val value: Double
     val label: String
 }

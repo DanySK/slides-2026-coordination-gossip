@@ -22,9 +22,9 @@ outputs = ["Reveal"]
 
 ---
 
-## Interactive gossip playground
+## Classic gossip: non-self-stabilizing
 
-{{< gossip-playground experiment="gradient" >}}
+{{< gossip-playground experiment="standard-gossip" >}}
 
 ---
 

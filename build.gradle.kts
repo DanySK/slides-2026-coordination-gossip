@@ -35,10 +35,15 @@ tasks.register<Copy>("syncCollektiveExperimentsToHugoStatic") {
     description = "Copies the Kotlin/JS browser bundle into Hugo static assets."
 
     dependsOn(tasks.named("jsBrowserDistribution"))
+    outputs.upToDateWhen { false }
 
     from(layout.buildDirectory.dir("dist/js/productionExecutable")) {
         include("collektive-experiments.js")
         include("collektive-experiments.js.map")
     }
     into(layout.projectDirectory.dir("static/js"))
+}
+
+tasks.matching { it.name in setOf("jsBrowserProductionWebpack", "jsBrowserDistribution") }.configureEach {
+    outputs.upToDateWhen { false }
 }

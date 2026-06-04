@@ -1,6 +1,6 @@
 {{- $experiment := .Get "experiment" | default "degree" -}}
-{{- $nodes := .Get "nodes" | default "100" -}}
-{{- $range := .Get "range" | default "200" -}}
+{{- $nodes := .Get "nodes" | default "50" -}}
+{{- $range := .Get "range" | default "300" -}}
 {{- $mobility := .Get "mobility" | default "0" -}}
 {{- $selectable := .Get "selectable" | default "false" -}}
 
@@ -11,10 +11,11 @@
     {{- else }}
     <span class="gossip-demo__experiment">Experiment: <strong data-output="experiment">{{ $experiment }}</strong></span>
     {{- end }}
-    <label>Devices <input data-control="nodes" type="range" min="0" max="1000" step="1" value="{{ $nodes }}"> <output data-output="nodes">{{ $nodes }}</output></label>
+    <label>Devices <input data-control="nodes" type="range" min="0" max="300" step="1" value="{{ $nodes }}"> <output data-output="nodes">{{ $nodes }}</output></label>
     <label>Communication range <input data-control="range" type="range" min="0" max="500" step="1" value="{{ $range }}"> <output data-output="range">{{ $range }}</output></label>
     <label>Mobility <input data-control="mobility" type="range" min="0" max="2" step="0.01" value="{{ $mobility }}"> <output data-output="mobility">{{ $mobility }}</output></label>
     <button type="button" data-control="reset">Reset</button>
+    <button type="button" data-control="delete">Remove selected</button>
   </div>
   <div class="gossip-demo__hud">
     <span>Backend: <strong data-output="backend">loading</strong></span>

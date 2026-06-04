@@ -32,12 +32,34 @@
     <section><h1 id="a-self-stabilizing-min-max-consensus-via-path-loop-detection">A Self-Stabilizing Min-Max Consensus via Path-loop Detection</h1>
 <h3 id="angela-cortecchia-danilo-pianini-mirko-viroli"><a href="angela.cortecchia@unibo.it">Angela Cortecchia</a>, <a href="danilo.pianini@unibo.it">Danilo Pianini</a>, <a href="mirko.viroli@unibo.it">Mirko Viroli</a></h3>
 </section><section>
-<h2 id="problem">Problem</h2>
+<h2 id="context-gossip-algorithms">Context: gossip algorithms</h2>
 <ul>
-<li>Gossip is scalable and decentralized</li>
-<li>Classical min/max gossip is <strong>not self-stabilizing</strong></li>
+<li>Gossip is scalable and decentralized, but <strong>monotonic</strong>
+<ul>
+<li>values can only adjust in one direction</li>
+<li>In other words, classic gossip is <strong>not self-stabilizing</strong> (cf. Dijkstra 1974¹)</li>
+</ul>
+</li>
 <li>Once a stale or corrupted “best” value appears, it can persist forever</li>
 </ul>
+<div class="gossip-demo" data-experiment="standard-gossip">
+  <div class="gossip-demo__toolbar">
+    <span class="gossip-demo__experiment">Experiment: <strong data-output="experiment">standard-gossip</strong></span>
+    <label>Devices <input data-control="nodes" type="range" min="0" max="300" step="1" value="100"> <output data-output="nodes">100</output></label>
+    <label>Communication range <input data-control="range" type="range" min="0" max="500" step="1" value="300"> <output data-output="range">300</output></label>
+    <label>Mobility <input data-control="mobility" type="range" min="0" max="2" step="0.01" value="0"> <output data-output="mobility">0</output></label>
+    <button type="button" data-control="reset">Reset</button>
+    <button type="button" data-control="reset-memory">Reset memory</button>
+    <button type="button" data-control="delete">Remove selected</button>
+  </div>
+  <div class="gossip-demo__hud">
+    <span>Backend: <strong data-output="backend">loading</strong></span>
+    <span>Edges: <strong data-output="edges">0</strong></span>
+  </div>
+  <canvas class="gossip-demo__canvas"></canvas>
+</div>
+
+<p><small>1. <em>Self-stabilizing systems in spite of distributed control</em> <a href="https://dl.acm.org/doi/10.1145/361179.361202">https://dl.acm.org/doi/10.1145/361179.361202</a></small></p>
 </section><section>
 <h2 id="classic-gossip-non-self-stabilizing">Classic gossip: non-self-stabilizing</h2>
 <div class="gossip-demo" data-experiment="standard-gossip">
@@ -47,6 +69,26 @@
     <label>Communication range <input data-control="range" type="range" min="0" max="500" step="1" value="300"> <output data-output="range">300</output></label>
     <label>Mobility <input data-control="mobility" type="range" min="0" max="2" step="0.01" value="0"> <output data-output="mobility">0</output></label>
     <button type="button" data-control="reset">Reset</button>
+    <button type="button" data-control="reset-memory">Reset memory</button>
+    <button type="button" data-control="delete">Remove selected</button>
+  </div>
+  <div class="gossip-demo__hud">
+    <span>Backend: <strong data-output="backend">loading</strong></span>
+    <span>Edges: <strong data-output="edges">0</strong></span>
+  </div>
+  <canvas class="gossip-demo__canvas"></canvas>
+</div>
+
+</section><section>
+<h2 id="classic-gossip-non-self-stabilizing-1">Classic gossip: non-self-stabilizing</h2>
+<div class="gossip-demo" data-experiment="gossip-min">
+  <div class="gossip-demo__toolbar">
+    <span class="gossip-demo__experiment">Experiment: <strong data-output="experiment">gossip-min</strong></span>
+    <label>Devices <input data-control="nodes" type="range" min="0" max="300" step="1" value="50"> <output data-output="nodes">50</output></label>
+    <label>Communication range <input data-control="range" type="range" min="0" max="500" step="1" value="300"> <output data-output="range">300</output></label>
+    <label>Mobility <input data-control="mobility" type="range" min="0" max="2" step="0.01" value="0"> <output data-output="mobility">0</output></label>
+    <button type="button" data-control="reset">Reset</button>
+    <button type="button" data-control="reset-memory">Reset memory</button>
     <button type="button" data-control="delete">Remove selected</button>
   </div>
   <div class="gossip-demo__hud">

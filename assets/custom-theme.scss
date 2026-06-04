@@ -27,10 +27,10 @@
 @import url('https://fonts.googleapis.com/css2?family=JetBrains+Mono');
 // @import url('https://fonts.googleapis.com/css2?family=Ubuntu+Mono');
 
-// $backgroundColor: #fff;
+$backgroundColor: #fff;
 
-// $mainColor: #000;
-// $headingColor: #111;
+$mainColor: #000;
+$headingColor: #111;
 
 $mainFontSize: 2em;
 // $mainFont: 'Roboto', sans-serif;
@@ -261,13 +261,13 @@ kbd {
 	background-size: 15%;
 	background-clip: border-box;
 	border-radius: 30px;
-	border-style: solid;
+	border-style: none;
 	border-color: $detailBackgroundColor;
 	border-width: 0.3em;
 }
 
 .reveal .slide-background:after {
-	content: "Authors - Title - Venue Year";
+	content: "Cortecchia, Pianini, Viroli - Self-Stabilizing Min-Max Consensus via Path-loop Detection - Coordination 2026";
 	position: absolute;
 	bottom: 2.5%;
 	right: 6%;

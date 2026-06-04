@@ -10,8 +10,7 @@ outputs = ["Reveal"]
 
 # A Self-Stabilizing Min-Max Consensus via Path-loop Detection
 
-### Summary deck
-Danilo Pianini
+### [Angela Cortecchia](angela.cortecchia@unibo.it), [Danilo Pianini](danilo.pianini@unibo.it), [Mirko Viroli](mirko.viroli@unibo.it)
 
 ---
 
@@ -20,6 +19,177 @@ Danilo Pianini
 - Gossip is scalable and decentralized
 - Classical min/max gossip is **not self-stabilizing**
 - Once a stale or corrupted “best” value appears, it can persist forever
+
+---
+
+  <div id="hud">
+    <div>Devices: <span id="n"></span></div>
+    <div>Edges: <span id="m"></span></div>
+    <div>Backend: <span id="backend"></span></div>
+  </div>
+
+<canvas id="canvas"></canvas>
+
+  <script type="module">
+    const canvas = document.getElementById("canvas");
+    const ctx = canvas.getContext("2d");
+    const nLabel = document.getElementById("n");
+    const mLabel = document.getElementById("m");
+    const backendLabel = document.getElementById("backend");
+
+    const DEVICE_COUNT = 80;
+    const RADIO_RANGE = 120;
+    const SPEED = 0.35;
+
+    const devices = Array.from({ length: DEVICE_COUNT }, (_, id) => ({
+      id,
+      x: Math.random() * innerWidth,
+      y: Math.random() * innerHeight,
+      vx: (Math.random() - 0.5) * SPEED,
+      vy: (Math.random() - 0.5) * SPEED,
+      value: 0
+    }));
+
+    function resize() {
+      const dpr = devicePixelRatio || 1;
+      canvas.width = Math.floor(innerWidth * dpr);
+      canvas.height = Math.floor(innerHeight * dpr);
+      ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+    }
+
+    addEventListener("resize", resize);
+    resize();
+
+    function moveDevices() {
+      for (const d of devices) {
+        d.x += d.vx;
+        d.y += d.vy;
+
+        if (d.x < 0 || d.x > innerWidth) d.vx *= -1;
+        if (d.y < 0 || d.y > innerHeight) d.vy *= -1;
+
+        d.x = Math.max(0, Math.min(innerWidth, d.x));
+        d.y = Math.max(0, Math.min(innerHeight, d.y));
+
+        // random displacement jitter
+        d.vx += (Math.random() - 0.5) * 0.03;
+        d.vy += (Math.random() - 0.5) * 0.03;
+
+        const norm = Math.hypot(d.vx, d.vy) || 1;
+        d.vx = (d.vx / norm) * SPEED;
+        d.vy = (d.vy / norm) * SPEED;
+      }
+    }
+
+    function computeEdges() {
+      const edges = [];
+
+      for (let i = 0; i < devices.length; i++) {
+        for (let j = i + 1; j < devices.length; j++) {
+          const a = devices[i];
+          const b = devices[j];
+          const dist = Math.hypot(a.x - b.x, a.y - b.y);
+
+          if (dist <= RADIO_RANGE) {
+            edges.push({
+              source: a.id,
+              target: b.id,
+              distance: dist
+            });
+          }
+        }
+      }
+
+      return edges;
+    }
+
+    function fallbackComputation(snapshot) {
+      // Used only until the Kotlin/JS Collektive bundle is wired in.
+      // Returns node degree as the displayed value.
+      const degree = new Map(snapshot.nodes.map(n => [n.id, 0]));
+
+      for (const e of snapshot.edges) {
+        degree.set(e.source, degree.get(e.source) + 1);
+        degree.set(e.target, degree.get(e.target) + 1);
+      }
+
+      return snapshot.nodes.map(n => ({
+        id: n.id,
+        value: degree.get(n.id)
+      }));
+    }
+
+    function runCollektive(snapshot) {
+      const api = globalThis.CollektiveDemo;
+
+      if (api && typeof api.step === "function") {
+        backendLabel.textContent = "Collektive";
+        return api.step(snapshot);
+      }
+
+      backendLabel.textContent = "fallback JS";
+      return fallbackComputation(snapshot);
+    }
+
+    function draw(edges) {
+      ctx.clearRect(0, 0, innerWidth, innerHeight);
+
+      ctx.lineWidth = 1;
+      ctx.strokeStyle = "rgb(120 120 120 / 0.35)";
+
+      for (const e of edges) {
+        const a = devices[e.source];
+        const b = devices[e.target];
+
+        ctx.beginPath();
+        ctx.moveTo(a.x, a.y);
+        ctx.lineTo(b.x, b.y);
+        ctx.stroke();
+      }
+
+      for (const d of devices) {
+        const radius = 4 + Math.min(d.value, 20) * 0.25;
+
+        ctx.beginPath();
+        ctx.arc(d.x, d.y, radius, 0, Math.PI * 2);
+        ctx.fillStyle = `hsl(${220 - Math.min(d.value, 20) * 8} 80% 60%)`;
+        ctx.fill();
+
+        ctx.fillStyle = "#ddd";
+        ctx.font = "10px system-ui";
+        ctx.fillText(String(d.value), d.x + 7, d.y - 7);
+      }
+    }
+
+    function frame() {
+      moveDevices();
+
+      const edges = computeEdges();
+
+      const snapshot = {
+        nodes: devices.map(d => ({
+          id: d.id,
+          x: d.x,
+          y: d.y
+        })),
+        edges
+      };
+
+      const outputs = runCollektive(snapshot);
+
+      for (const output of outputs) {
+        devices[output.id].value = output.value;
+      }
+
+      nLabel.textContent = devices.length;
+      mLabel.textContent = edges.length;
+
+      draw(edges);
+      requestAnimationFrame(frame);
+    }
+
+    frame();
+  </script>
 
 ---
 

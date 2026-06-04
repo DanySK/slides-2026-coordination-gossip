@@ -1,0 +1,20 @@
+services:
+  hugo:
+    build:
+      context: .
+      tags:
+        - hugo-slides-server
+      args:
+        UID: 1000
+        GID: 1000
+    volumes:
+      - ./content:/data/content
+      - ./shared-slides:/data/shared-slides
+      - ./config.toml:/data/config.toml
+      - ./assets:/data/assets
+      - ./layouts:/data/layouts
+      - ./static:/data/static
+      - ./themes:/data/themes
+      - ./archetypes:/data/archetypes
+    ports:
+      - "1313:1313"

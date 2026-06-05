@@ -2,6 +2,7 @@
 {{- $nodes := .Get "nodes" | default "50" -}}
 {{- $range := .Get "range" | default "300" -}}
 {{- $mobility := .Get "mobility" | default "0" -}}
+{{- $tickrate := .Get "tickrate" | default "30" -}}
 {{- $selectable := .Get "selectable" | default "false" -}}
 
 <div class="gossip-demo" data-experiment="{{ $experiment }}">
@@ -14,6 +15,7 @@
     <label>Devices <input data-control="nodes" type="range" min="0" max="300" step="1" value="{{ $nodes }}"> <output data-output="nodes">{{ $nodes }}</output></label>
     <label>Communication range <input data-control="range" type="range" min="0" max="500" step="1" value="{{ $range }}"> <output data-output="range">{{ $range }}</output></label>
     <label>Mobility <input data-control="mobility" type="range" min="0" max="2" step="0.01" value="{{ $mobility }}"> <output data-output="mobility">{{ $mobility }}</output></label>
+    <label>Tick rate <input data-control="tickrate" type="range" min="0" max="120" step="1" value="{{ $tickrate }}"> <output data-output="tickrate">{{ $tickrate }}</output>/s</label>
     <button type="button" data-control="reset">Reset</button>
     <button type="button" data-control="reset-memory">Reset memory</button>
     <button type="button" data-control="delete">Remove selected</button>

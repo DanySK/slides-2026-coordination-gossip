@@ -1,6 +1,6 @@
 .gossip-demo {
-  --panel-bg: rgb(255 255 255 / 0.88);
-  --panel-border: rgb(0 0 0 / 0.16);
+  --panel-bg: rgb(255 255 255 / 0.48);
+  --panel-border: rgb(0 0 0 / 0.10);
   position: relative;
   width: 100%;
   height: min(72vh, 720px);
@@ -30,7 +30,7 @@
   border: 1px solid var(--panel-border);
   border-radius: 0.55em;
   background: var(--panel-bg);
-  backdrop-filter: blur(0.25em);
+  backdrop-filter: blur(0.08em);
 }
 
 .gossip-demo__toolbar { top: 0.7em; left: 0.7em; right: 0.7em; }

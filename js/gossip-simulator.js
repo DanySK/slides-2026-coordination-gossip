@@ -60,13 +60,16 @@
       this.canvas = root.querySelector(".gossip-demo__canvas");
       this.ctx = this.canvas.getContext("2d");
       this.controls = Object.fromEntries(
-        ["experiment", "nodes", "range", "mobility", "reset", "reset-memory", "delete"].map((name) => [
+        ["experiment", "nodes", "range", "mobility", "tickrate", "reset", "reset-memory", "delete"].map((name) => [
           name,
           root.querySelector(`[data-control="${name}"]`),
         ]),
       );
       this.outputs = Object.fromEntries(
-        ["backend", "edges", "time", "experiment", "nodes", "range", "mobility"].map((name) => [name, root.querySelector(`[data-output="${name}"]`)]),
+        ["backend", "edges", "time", "experiment", "nodes", "range", "mobility", "tickrate"].map((name) => [
+          name,
+          root.querySelector(`[data-output="${name}"]`),
+        ]),
       );
       this.fixedExperiment = root.dataset.experiment || "degree";
       this.devices = [];
@@ -74,11 +77,14 @@
       this.drag = null;
       this.initialized = false;
       this.time = 0;
+      this.lastFrameTime = null;
+      this.tickAccumulator = 0;
+      this.canvasSize = { width: 0, height: 0, dpr: 0 };
     }
 
     start() {
       this.refreshExperiments();
-      for (const name of ["nodes", "range", "mobility"]) {
+      for (const name of ["nodes", "range", "mobility", "tickrate"]) {
         this.controls[name].addEventListener("input", () => {
           this.updateLabels();
           if (name === "nodes") this.reset();
@@ -99,7 +105,7 @@
       this.updateLabels();
       this.resize();
       this.activateIfVisible();
-      requestAnimationFrame(() => this.loop());
+      requestAnimationFrame((timestamp) => this.loop(timestamp));
     }
 
     refreshExperiments() {
@@ -113,7 +119,7 @@
     }
 
     updateLabels() {
-      for (const name of ["nodes", "range", "mobility"]) this.outputs[name].textContent = this.controls[name].value;
+      for (const name of ["nodes", "range", "mobility", "tickrate"]) this.outputs[name].textContent = this.controls[name].value;
       if (this.outputs.experiment) this.outputs.experiment.textContent = this.experimentName();
       if (this.outputs.time) this.outputs.time.textContent = String(this.time);
     }
@@ -136,10 +142,12 @@
 
     activateIfVisible() {
       if (!this.isVisible()) return false;
-      this.resize();
+      const resized = this.resize();
       if (!this.initialized) {
         this.initialized = true;
         this.reset();
+      } else if (resized) {
+        this.draw(this.edges());
       }
       return true;
     }
@@ -147,9 +155,14 @@
     resize() {
       const dpr = devicePixelRatio || 1;
       const { width, height } = this.bounds();
-      this.canvas.width = Math.floor(width * dpr);
-      this.canvas.height = Math.floor(height * dpr);
+      const canvasWidth = Math.floor(width * dpr);
+      const canvasHeight = Math.floor(height * dpr);
+      if (this.canvasSize.width === canvasWidth && this.canvasSize.height === canvasHeight && this.canvasSize.dpr === dpr) return false;
+      this.canvas.width = canvasWidth;
+      this.canvas.height = canvasHeight;
       this.ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+      this.canvasSize = { width: canvasWidth, height: canvasHeight, dpr };
+      return true;
     }
 
     reset() {
@@ -157,6 +170,8 @@
       const { width, height } = this.bounds();
       this.initialized = true;
       this.time = 0;
+      this.tickAccumulator = 0;
+      this.lastFrameTime = null;
       this.devices = Array.from({ length: count }, (_, id) => {
         const angle = Math.random() * Math.PI * 2;
         return { id, x: Math.random() * width, y: Math.random() * height, vx: Math.cos(angle), vy: Math.sin(angle), value: id, resultLabel: String(id) };
@@ -170,17 +185,33 @@
       experiments()[this.experimentName()]?.reset?.(this.instanceId);
     }
 
-    loop() {
+    loop(timestamp) {
       const active = this.activateIfVisible();
       if (active) {
-        this.time += 1;
-        this.updateLabels();
-        this.tick();
+        this.advance(timestamp);
       }
-      requestAnimationFrame(() => this.loop());
+      requestAnimationFrame((nextTimestamp) => this.loop(nextTimestamp));
+    }
+
+    advance(timestamp) {
+      if (this.lastFrameTime === null) {
+        this.lastFrameTime = timestamp;
+        this.tick();
+        return;
+      }
+      const tickRate = Number(this.controls.tickrate.value);
+      const elapsed = Math.min(1000, timestamp - this.lastFrameTime);
+      this.lastFrameTime = timestamp;
+      if (tickRate <= 0) return;
+      this.tickAccumulator += (elapsed / 1000) * tickRate;
+      const ticks = Math.min(20, Math.floor(this.tickAccumulator));
+      this.tickAccumulator -= ticks;
+      for (let tick = 0; tick < ticks; tick++) this.tick();
     }
 
     tick() {
+      this.time += 1;
+      this.updateLabels();
       this.move();
       const edges = this.edges();
       const snapshot = {

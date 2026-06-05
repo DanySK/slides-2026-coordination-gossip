@@ -66,13 +66,14 @@
         ]),
       );
       this.outputs = Object.fromEntries(
-        ["backend", "edges", "experiment", "nodes", "range", "mobility"].map((name) => [name, root.querySelector(`[data-output="${name}"]`)]),
+        ["backend", "edges", "time", "experiment", "nodes", "range", "mobility"].map((name) => [name, root.querySelector(`[data-output="${name}"]`)]),
       );
       this.fixedExperiment = root.dataset.experiment || "degree";
       this.devices = [];
       this.selectedIds = new Set();
       this.drag = null;
       this.initialized = false;
+      this.time = 0;
     }
 
     start() {
@@ -114,6 +115,7 @@
     updateLabels() {
       for (const name of ["nodes", "range", "mobility"]) this.outputs[name].textContent = this.controls[name].value;
       if (this.outputs.experiment) this.outputs.experiment.textContent = this.experimentName();
+      if (this.outputs.time) this.outputs.time.textContent = String(this.time);
     }
 
     experimentName() {
@@ -154,12 +156,14 @@
       const count = Number(this.controls.nodes.value);
       const { width, height } = this.bounds();
       this.initialized = true;
+      this.time = 0;
       this.devices = Array.from({ length: count }, (_, id) => {
         const angle = Math.random() * Math.PI * 2;
         return { id, x: Math.random() * width, y: Math.random() * height, vx: Math.cos(angle), vy: Math.sin(angle), value: id, resultLabel: String(id) };
       });
       this.selectedIds.clear();
       this.resetMemory();
+      this.updateLabels();
     }
 
     resetMemory() {
@@ -167,7 +171,12 @@
     }
 
     loop() {
-      if (this.activateIfVisible()) this.tick();
+      const active = this.activateIfVisible();
+      if (active) {
+        this.time += 1;
+        this.updateLabels();
+        this.tick();
+      }
       requestAnimationFrame(() => this.loop());
     }
 
@@ -178,7 +187,7 @@
         instanceId: this.instanceId,
         nodes: this.devices.map(({ id, x, y, value }) => ({ id, x, y, value })),
         edges,
-        parameters: { communicationRange: Number(this.controls.range.value), mobility: Number(this.controls.mobility.value) },
+        parameters: { communicationRange: Number(this.controls.range.value), mobility: Number(this.controls.mobility.value), time: this.time },
       };
       const name = this.experimentName();
       const registry = experiments();

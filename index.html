@@ -49,8 +49,8 @@
 <div class="gossip-demo" data-experiment="standard-gossip">
   <div class="gossip-demo__toolbar">
     <span class="gossip-demo__experiment">Experiment: <strong data-output="experiment">standard-gossip</strong></span>
-    <label>Devices <input data-control="nodes" type="range" min="0" max="300" step="1" value="100"> <output data-output="nodes">100</output></label>
-    <label>Communication range <input data-control="range" type="range" min="0" max="500" step="1" value="300"> <output data-output="range">300</output></label>
+    <label>Devices <input data-control="nodes" type="range" min="0" max="300" step="1" value="70"> <output data-output="nodes">70</output></label>
+    <label>Communication range <input data-control="range" type="range" min="0" max="500" step="1" value="20"> <output data-output="range">20</output></label>
     <label>Mobility <input data-control="mobility" type="range" min="0" max="2" step="0.01" value="0"> <output data-output="mobility">0</output></label>
     <button type="button" data-control="reset">Reset</button>
     <button type="button" data-control="reset-memory">Reset memory</button>
@@ -59,6 +59,7 @@
   <div class="gossip-demo__hud">
     <span>Backend: <strong data-output="backend">loading</strong></span>
     <span>Edges: <strong data-output="edges">0</strong></span>
+    <span>Time: <strong data-output="time">0</strong></span>
   </div>
   <canvas class="gossip-demo__canvas"></canvas>
 </div>
@@ -85,6 +86,7 @@
   <div class="gossip-demo__hud">
     <span>Backend: <strong data-output="backend">loading</strong></span>
     <span>Edges: <strong data-output="edges">0</strong></span>
+    <span>Time: <strong data-output="time">0</strong></span>
   </div>
   <canvas class="gossip-demo__canvas"></canvas>
 </div>
@@ -107,6 +109,7 @@
   <div class="gossip-demo__hud">
     <span>Backend: <strong data-output="backend">loading</strong></span>
     <span>Edges: <strong data-output="edges">0</strong></span>
+    <span>Time: <strong data-output="time">0</strong></span>
   </div>
   <canvas class="gossip-demo__canvas"></canvas>
 </div>

@@ -22,7 +22,7 @@ outputs = ["Reveal"]
 - Once a stale or corrupted “best” value appears, it can persist forever
   - Gossip protocols are inherently **asymmetric**
 
-{{< gossip-playground experiment="standard-gossip" nodes=100 >}}
+{{< gossip-playground experiment="standard-gossip" nodes=70 range=20 >}}
 
 <small>1. *Self-stabilizing systems in spite of distributed control* https://dl.acm.org/doi/10.1145/361179.361202</small>
 

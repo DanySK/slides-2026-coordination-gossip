@@ -1,7 +1,8 @@
+import org.jetbrains.kotlin.gradle.targets.js.dsl.KotlinJsTargetDsl
 import org.jetbrains.kotlin.gradle.targets.js.webpack.KotlinWebpackConfig
 
 plugins {
-    kotlin("multiplatform") version "2.4.0"
+    kotlin("multiplatform") version "2.3.20"
     id("it.unibo.collektive.collektive-plugin") version "28.2.5"
 }
 
@@ -10,7 +11,7 @@ repositories {
 }
 
 kotlin {
-    js(IR) {
+    js {
         browser {
             commonWebpackConfig {
                 outputFileName = "collektive-experiments.js"

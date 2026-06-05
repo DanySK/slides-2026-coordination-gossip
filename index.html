@@ -8,7 +8,7 @@
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no"><link rel="stylesheet" href="/slides-2026-coordination-gossip/reveal-js/dist/reset.css">
 <link rel="stylesheet" href="/slides-2026-coordination-gossip/reveal-js/dist/reveal.css">
-  <link rel="stylesheet" href="/slides-2026-coordination-gossip/css/custom-theme.min.5d8c197aa8b0ed9da9e697822185519561ac564321335b8725378c45b8c1e383.css" id="theme"><link rel="stylesheet" href="/slides-2026-coordination-gossip/highlight-js/solarized-dark.min.css">
+  <link rel="stylesheet" href="/slides-2026-coordination-gossip/css/custom-theme.min.dab47265666cc8aabdc665387393dc1fc7d356b6884c68be490da66ef8242abf.css" id="theme"><link rel="stylesheet" href="/slides-2026-coordination-gossip/highlight-js/solarized-dark.min.css">
 <link href="https://fonts.googleapis.com/css?family=Roboto Mono" rel="stylesheet">
 <link href="https://fonts.googleapis.com/css?family=Oxygen Mono" rel="stylesheet">
 <link href="https://fonts.googleapis.com/css?family=Ubuntu Mono" rel="stylesheet">
@@ -33,19 +33,27 @@
 <h3 id="angela-cortecchia-danilo-pianini-mirko-viroli"><a href="angela.cortecchia@unibo.it">Angela Cortecchia</a>, <a href="danilo.pianini@unibo.it">Danilo Pianini</a>, <a href="mirko.viroli@unibo.it">Mirko Viroli</a></h3>
 </section><section>
 <h2 id="context-gossip-algorithms">Context: gossip algorithms</h2>
+<p>Gossip algorithms are a popular class of <em>decentralized protocols</em> for information <em>dissemination</em> and <em>aggregation</em> in distributed systems.</p>
+<p>Network nodes converge to a common value by repeatedly exchanging and merging their local state with neighbors.</p>
+<h3 id="problem-at-hand">Problem at hand</h3>
 <ul>
 <li>Gossip is scalable and decentralized, but <strong>monotonic</strong>
 <ul>
 <li>values can only adjust in one direction</li>
-<li>In other words, classic gossip is <strong>not self-stabilizing</strong> (cf. Dijkstra 1974¹)</li>
-</ul>
-</li>
-<li>Once a stale or corrupted “best” value appears, it can persist forever
-<ul>
+<li>Once a stale or corrupted “best” value appears, it can persist forever</li>
 <li>Gossip protocols are inherently <strong>asymmetric</strong></li>
 </ul>
 </li>
+<li>In other words, classic gossip is <strong>not self-stabilizing</strong> (cf. Dijkstra 1974¹)</li>
 </ul>
+<blockquote>
+<p><strong>Self-stabilization</strong> is the ability of a system to recover from arbitrary transient faults, eventually converging to a correct state without external intervention.</p>
+</blockquote>
+<p><small>1. <em>Self-stabilizing systems in spite of distributed control</em> <a href="https://dl.acm.org/doi/10.1145/361179.361202">https://dl.acm.org/doi/10.1145/361179.361202</a></small></p>
+</section><section>
+<h2 id="gossip-algorithms-the-curse-of-monotonicity">Gossip algorithms: the curse of monotonicity</h2>
+<p>Mini-simulation: find the <em>minimum</em> value in the (local) network.</p>
+<p>We’ll expand the communication radius, then reduce it</p>
 <div class="gossip-demo" data-experiment="standard-gossip">
   <div class="gossip-demo__toolbar">
     <span class="gossip-demo__experiment">Experiment: <strong data-output="experiment">standard-gossip</strong></span>
@@ -65,7 +73,20 @@
   <canvas class="gossip-demo__canvas"></canvas>
 </div>
 
-<p><small>1. <em>Self-stabilizing systems in spite of distributed control</em> <a href="https://dl.acm.org/doi/10.1145/361179.361202">https://dl.acm.org/doi/10.1145/361179.361202</a></small></p>
+<p>Desiderata: the minimum value should be found, when the network changes, the system should <em>recover</em> and find the new minimum.</p>
+</section><section>
+<h2 id="common-workarounds">Common workarounds</h2>
+<h3 id="restart-gossip">Restart-gossip</h3>
+<p>A strategy to recover from stale values is to periodically reset the system</p>
+<ul>
+<li>Requires global synchronization or logical timestamps</li>
+<li>Trades off convergence speed for eventual correctness</li>
+<li>Causes oscillations</li>
+<li>Non-self-stabilizing by design</li>
+</ul>
+<h3 id="time-replication">Time-replication</h3>
+<p>Maintain multiple parallel gossip instances, use the oldest replica as current,
+discard replicas after a timeout.</p>
 </section><section>
 <h2 id="gossip-merge-functions">Gossip merge functions</h2>
 <p>Gossip algorithms merge values using functions that are:</p>

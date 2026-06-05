@@ -16,17 +16,56 @@ outputs = ["Reveal"]
 
 ## Context: gossip algorithms
 
+Gossip algorithms are a popular class of *decentralized protocols* for information *dissemination* and *aggregation* in distributed systems.
+
+Network nodes converge to a common value by repeatedly exchanging and merging their local state with neighbors.
+
+### Problem at hand
+
 - Gossip is scalable and decentralized, but **monotonic**
   - values can only adjust in one direction 
-  - In other words, classic gossip is **not self-stabilizing** (cf. Dijkstra 1974¹)
-- Once a stale or corrupted “best” value appears, it can persist forever
+  - Once a stale or corrupted “best” value appears, it can persist forever
   - Gossip protocols are inherently **asymmetric**
+- In other words, classic gossip is **not self-stabilizing** (cf. Dijkstra 1974¹)
 
-{{< gossip-playground experiment="standard-gossip" nodes=70 range=20 >}}
+> **Self-stabilization** is the ability of a system to recover from arbitrary transient faults, eventually converging to a correct state without external intervention.
 
 <small>1. *Self-stabilizing systems in spite of distributed control* https://dl.acm.org/doi/10.1145/361179.361202</small>
 
 ---
+
+## Gossip algorithms: the curse of monotonicity
+
+Mini-simulation: find the *minimum* value in the (local) network.
+
+We'll expand the communication radius, then reduce it
+
+{{< gossip-playground experiment="standard-gossip" nodes=70 range=20 >}}
+
+Desiderata: the minimum value should be found, when the network changes, the system should *recover* and find the new minimum.
+
+---
+
+## Common workarounds
+
+### Restart-gossip
+
+A strategy to recover from stale values is to periodically reset the system
+- Requires global synchronization or logical timestamps
+- Trades off convergence speed for eventual correctness
+- Causes oscillations
+- Non-self-stabilizing by design
+
+### Time-replication
+
+Maintain multiple parallel gossip instances, use the oldest replica as current,
+discard replicas after a timeout.
+
+
+
+---
+
+
 
 ## Gossip merge functions
 

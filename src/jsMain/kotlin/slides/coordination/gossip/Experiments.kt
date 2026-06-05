@@ -123,8 +123,7 @@ private class CollektiveRuntime(
             @Suppress("UNCHECKED_CAST")
             override fun <Value> dataAt(path: Path, dataSharingMethod: it.unibo.collektive.aggregate.api.DataSharingMethod<Value>):
                 Map<Int, Value> = buildMap {
-                    messages
-                        .asSequence()
+                    messages.asSequence()
                         .filter { it.senderId in neighbors }
                         .filter { path in it.sharedData }
                         .forEach { message ->
@@ -200,14 +199,30 @@ private fun output(id: Int, result: Any?): DeviceOutput =
         "label" to result.toString(),
     ).unsafeCast<DeviceOutput>()
 
-private fun colorValue(result: Any?): Double =
+private fun colorValue(result: Any?): Double = colorValue(result, inspectComponents = true) ?: 0.0
+
+private fun colorValue(result: Any?, inspectComponents: Boolean): Double? =
     when (result) {
         is Number -> result.toDouble()
+        is Boolean -> if (result) 0.75 else 0.25
         is Collection<*> -> result.size.toDouble()
         is Map<*, *> -> result.size.toDouble()
         is Array<*> -> result.size.toDouble()
-        else -> 0.0
+        else -> if (inspectComponents) firstComponentColorValue(result) else null
     }
+
+private fun firstComponentColorValue(result: Any?): Double? =
+    (1..3)
+        .asSequence()
+        .mapNotNull { componentIndex -> componentValue(result, componentIndex) }
+        .mapNotNull { component -> colorValue(component, inspectComponents = false) }
+        .firstOrNull()
+
+private fun componentValue(result: Any?, componentIndex: Int): Any? {
+    if (result == null) return null
+    val component = result.asDynamic()["component$componentIndex"]
+    return if (jsTypeOf(component) == "function") component.call(result) else null
+}
 
 private fun experimentsRegistry(): dynamic {
     val global = js("globalThis")

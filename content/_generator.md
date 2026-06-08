@@ -20,12 +20,16 @@ Gossip algorithms are a popular class of *decentralized protocols* for informati
 
 Network nodes converge to a common value by repeatedly exchanging and merging their local state with neighbors.
 
+Gossip algorithms merge values using functions that are:
+- **idempotent**: $f(x, f(x, y)) = f(x, y)$, and
+- **commutative**: $f(x, y) = f(y, x)$.
+
 ### Problem at hand
 
 - Gossip is scalable and decentralized, but **monotonic**
-  - values can only adjust in one direction 
-  - Once a stale or corrupted “best” value appears, it can persist forever
-  - Gossip protocols are inherently **asymmetric**
+    - values can only adjust in one direction
+    - Once a stale or corrupted “best” value appears, it can persist forever
+    - Gossip protocols are inherently **asymmetric**
 - In other words, classic gossip is **not self-stabilizing** (cf. Dijkstra 1974¹)
 
 > **Self-stabilization** is the ability of a system to recover from arbitrary transient faults, eventually converging to a correct state without external intervention.
@@ -50,38 +54,64 @@ Desiderata: the minimum value should be found, when the network changes, the sys
 
 ### Restart-gossip
 
-A strategy to recover from stale values is to periodically reset the system
-- Requires global synchronization or logical timestamps
-- Trades off convergence speed for eventual correctness
-- Causes oscillations
+A strategy to recover from stale values is to **periodically reset the system**
+- Requires global *synchronization* or logical *timestamps*
+- *Stability* vs *adaptivity* trade-off (oscillatory behavior)
 - Non-self-stabilizing by design
+
+{{< gossip-playground experiment="restart-gossip" >}}
+
+---
 
 ### Time-replication
 
-Maintain multiple parallel gossip instances, use the oldest replica as current,
-discard replicas after a timeout.
+![Time replication](timereplicated.png)
 
-
-
----
-
-
-
-## Gossip merge functions
-
-Gossip algorithms merge values using functions that are:
-- **idempotent**: $f(x, f(x, y)) = f(x, y)$, and
-- **commutative**: $f(x, y) = f(y, x)$.
-
-The final network value **depends on all the inputs**. Set union is a valid function example:
-
-{{< gossip-playground experiment="gossip-union" nodes=15 range=300 >}}
+Maintain **multiple parallel gossip instances**, use the oldest replica as current, discard replicas after a timeout.
+- Requires a "pace-making" mechanism
+- Trades off *promptness* and communication *overhead* to achieve *self-stabilization*
 
 ---
 
-## Min-max consensus 
+### Converge-cast + broadcast
 
-Min-max consensus algorithms are a special case of gossip, where the correct value depends **on a single input**. Typical cases are *minimum* and *maximum* selection.
+![converge-cast + broadcast](sgcg.png)
+
+Elect a **leader**, build a spanning tree, **aggregate values up** to the root, **broadcast** result down.
+- Leader election and tree maintenance are costly and fragile in dynamic networks
+
+---
+
+## Gossip vs. min-max consensus (aka selector-based consensus)
+
+Min-max consensus is a *special case* of gossip where the correct value depends **on a single input**, e.g., minimum or maximum selection.
+
+In addition to *commutativity* and *idempotence*, the function must also be **selective**: $f(x, y) \in \\{x, y\\}$.
+
+### Intuition
+
+- In min-max consensus, the "best" value is determined by a single node's input
+- We can track the "path" of support for a value
+  - This is similar to the spanning tree in converge-cast, but without a fixed leader or global structure
+- If the local device appears in the path of a candidate value, it can reject it as stale (**loop detection**)
+
+---
+
+## Algorithm:
+
+1. messages are in the form `(value, list of device ids)`. Start with `(local value, [local device id])`
+2. observe the values shared by neighbors, *discard all those whose list contains your device id* (loop detection)
+3. *select the best* value among the remaining candidates and your local one
+   - *tie-breaking* by shortest path and deterministic ID-based rule
+4. *share the selected* value with *your device id appended* to the list
+
+{{< gossip-playground experiment="gossip-min" >}}
+
+---
+
+### Under the hood
+
+{{< gossip-playground experiment="track" >}}
 
 ---
 
@@ -120,9 +150,9 @@ At each round, a node:
 1. removes looped candidates
 1. compares remaining candidates plus its local one
 1. tie-breaks by:
-   1. comparator value (min/max/custom selector)
-   1. shortest path
-   1. deterministic ID-based rule
+    1. comparator value (min/max/custom selector)
+    1. shortest path
+    1. deterministic ID-based rule
 1. forwards selected candidate with its own ID appended
 
 ---
@@ -169,8 +199,8 @@ Under standard assumptions (finite components, stabilized inputs/topology, order
 - Simulated in **Alchemist**
 - Random 2D deployments, asynchronous rounds (1 Hz), repeated seeds
 - Metrics:
-  - RMSE from oracle expected value
-  - weighted communication data rate
+    - RMSE from oracle expected value
+    - weighted communication data rate
 
 ---
 
@@ -217,3 +247,5 @@ Path validation is a lightweight “certificate of support”:
 - practical building block for resilient coordination in dynamic systems
 
 ---
+
+{{< gossip-playground experiment="gossip-union" nodes=15 range=300 >}}

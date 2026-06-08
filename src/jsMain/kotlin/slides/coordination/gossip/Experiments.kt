@@ -2,8 +2,10 @@ package slides.coordination.gossip
 
 import it.unibo.collektive.Collektive
 import it.unibo.collektive.aggregate.Field
+import it.unibo.collektive.aggregate.FieldEntry
 import it.unibo.collektive.aggregate.api.Aggregate
 import it.unibo.collektive.aggregate.api.share
+import it.unibo.collektive.aggregate.api.sharing
 import it.unibo.collektive.aggregate.values
 import it.unibo.collektive.networking.Message
 import it.unibo.collektive.networking.NeighborsData
@@ -49,17 +51,45 @@ fun main() {
 fun Aggregate<Int>.gradient() = hopGradientCast(localId == 2, 0) { fromSource, toNeighbor, data -> fromSource + toNeighbor }
 fun Aggregate<Int>.gradient2() = hopGradientCast(localId == 0, 0) { fromSource, toNeighbor, data -> fromSource }
 fun Aggregate<Int>.gradient3() = hopGradientCast(localId == 0, 0) { fromSource, toNeighbor, data -> fromSource }
-
+fun Aggregate<Int>.classicGossipMin() = share(localId) { it.all.values.min() }
 
 private fun installExperiments() {
     val registry = experimentsRegistry()
+    data class Entry(val id: Int, val path: List<Int> = emptyList()) : Comparable<Entry> {
+        override fun compareTo(other: Entry): Int = compareBy<Entry> { it.id }
+            .thenBy { it.path.size }
+            .thenBy { it.path.lastOrNull() }
+            .compare(this, other)
+
+        override fun toString() = "$id[${path.joinToString("->")}]"
+    }
+
     registry["degree"] = ::degree
     registry["component-min"] = ::componentMin
     registerCollektive(registry, "gradient") { this.gradient() }
-    registerCollektive(registry, "standard-gossip") {
-        share(localId) { it.all.values.min() }
+    registerCollektive(registry, "standard-gossip") { classicGossipMin() }
+    registerCollektive(registry, "restart-gossip") {
+        evolving(0) {
+            (it + 1).yielding {
+                when (it % 200) {
+                    in 0..99 -> classicGossipMin()
+                    else -> classicGossipMin()
+                }
+            }
+        }
     }
     registerCollektive(registry, "gossip-min") { gossipMin(localId) }
+    registerCollektive(registry, "track", colorSource = { (it as Entry).component1() }) {
+        share(Entry(localId)) { paths ->
+            val bestEntry = paths.map { (id, entry) ->
+                when {
+                    localId in entry.path -> Entry(localId)
+                    else -> entry.copy(path = entry.path + id)
+                }
+            }.neighbors.values.min()
+            minOf(bestEntry ?: Entry(localId), Entry(localId))
+        }
+    }
     registerCollektive(registry, "gossip-union") {
         share(listOf(localId)) { it.all.values.reduce { a, b -> a + b }.distinct().sorted() }
     }
@@ -67,6 +97,7 @@ private fun installExperiments() {
 
 private class CollektiveRuntime(
     private val program: Aggregate<Int>.() -> Any?,
+    private val colorSource: (Any?) -> Any?,
 ) {
     private val memories: MutableMap<String, RuntimeMemory> = mutableMapOf()
 
@@ -103,7 +134,8 @@ private class CollektiveRuntime(
         memory.inboundMessages = nextInbound
 
         return snapshot.nodes.map { node ->
-            output(node.id, results.getValue(node.id).result)
+            val result = results.getValue(node.id).result
+            output(node.id, result, colorSource(result))
         }.toTypedArray()
     }
 
@@ -140,8 +172,13 @@ private data class RuntimeMemory(
     var inboundMessages: Map<Int, List<Message<Int, *>>> = emptyMap(),
 )
 
-private fun registerCollektive(registry: dynamic, name: String, program: Aggregate<Int>.() -> Any?) {
-    val runtime = CollektiveRuntime(program)
+private fun registerCollektive(
+    registry: dynamic,
+    name: String,
+    colorSource: (Any?) -> Any? = { it },
+    program: Aggregate<Int>.() -> Any?,
+) {
+    val runtime = CollektiveRuntime(program, colorSource)
     val run: Experiment = runtime::run
     run.asDynamic().reset = runtime::reset
     registry[name] = run
@@ -192,10 +229,10 @@ private fun componentMin(snapshot: Snapshot): Array<DeviceOutput> {
     }.toTypedArray()
 }
 
-private fun output(id: Int, result: Any?): DeviceOutput =
+private fun output(id: Int, result: Any?, colorSource: Any? = result): DeviceOutput =
     json(
         "id" to id,
-        "value" to colorValue(result),
+        "value" to colorValue(colorSource),
         "label" to result.toString(),
     ).unsafeCast<DeviceOutput>()
 

@@ -1,8 +1,6 @@
 <component name="ArtifactManager">
   <artifact type="jar" name="slides-2026-coordination-gossip-js">
     <output-path>$PROJECT_DIR$/build/libs</output-path>
-    <root id="archive" name="slides-2026-coordination-gossip-js.jar">
-      <element id="module-output" name="slides-2026-coordination-gossip.jsMain" />
-    </root>
+    <root id="archive" name="slides-2026-coordination-gossip-js.jar" />
   </artifact>
 </component>

@@ -35,6 +35,11 @@
 <h2 id="context-gossip-algorithms">Context: gossip algorithms</h2>
 <p>Gossip algorithms are a popular class of <em>decentralized protocols</em> for information <em>dissemination</em> and <em>aggregation</em> in distributed systems.</p>
 <p>Network nodes converge to a common value by repeatedly exchanging and merging their local state with neighbors.</p>
+<p>Gossip algorithms merge values using functions that are:</p>
+<ul>
+<li><strong>idempotent</strong>: $f(x, f(x, y)) = f(x, y)$, and</li>
+<li><strong>commutative</strong>: $f(x, y) = f(y, x)$.</li>
+</ul>
 <h3 id="problem-at-hand">Problem at hand</h3>
 <ul>
 <li>Gossip is scalable and decentralized, but <strong>monotonic</strong>
@@ -77,28 +82,16 @@
 </section><section>
 <h2 id="common-workarounds">Common workarounds</h2>
 <h3 id="restart-gossip">Restart-gossip</h3>
-<p>A strategy to recover from stale values is to periodically reset the system</p>
+<p>A strategy to recover from stale values is to <strong>periodically reset the system</strong></p>
 <ul>
-<li>Requires global synchronization or logical timestamps</li>
-<li>Trades off convergence speed for eventual correctness</li>
-<li>Causes oscillations</li>
+<li>Requires global <em>synchronization</em> or logical <em>timestamps</em></li>
+<li><em>Stability</em> vs <em>adaptivity</em> trade-off (oscillatory behavior)</li>
 <li>Non-self-stabilizing by design</li>
 </ul>
-<h3 id="time-replication">Time-replication</h3>
-<p>Maintain multiple parallel gossip instances, use the oldest replica as current,
-discard replicas after a timeout.</p>
-</section><section>
-<h2 id="gossip-merge-functions">Gossip merge functions</h2>
-<p>Gossip algorithms merge values using functions that are:</p>
-<ul>
-<li><strong>idempotent</strong>: $f(x, f(x, y)) = f(x, y)$, and</li>
-<li><strong>commutative</strong>: $f(x, y) = f(y, x)$.</li>
-</ul>
-<p>The final network value <strong>depends on all the inputs</strong>. Set union is a valid function example:</p>
-<div class="gossip-demo" data-experiment="gossip-union">
+<div class="gossip-demo" data-experiment="restart-gossip">
   <div class="gossip-demo__toolbar">
-    <span class="gossip-demo__experiment">Experiment: <strong data-output="experiment">gossip-union</strong></span>
-    <label>Devices <input data-control="nodes" type="range" min="0" max="300" step="1" value="15"> <output data-output="nodes">15</output></label>
+    <span class="gossip-demo__experiment">Experiment: <strong data-output="experiment">restart-gossip</strong></span>
+    <label>Devices <input data-control="nodes" type="range" min="0" max="300" step="1" value="50"> <output data-output="nodes">50</output></label>
     <label>Communication range <input data-control="range" type="range" min="0" max="500" step="1" value="300"> <output data-output="range">300</output></label>
     <label>Mobility <input data-control="mobility" type="range" min="0" max="2" step="0.01" value="0"> <output data-output="mobility">0</output></label>
     <label>Tick rate <input data-control="tickrate" type="range" min="0" max="120" step="1" value="30"> <output data-output="tickrate">30</output>/s</label>
@@ -115,8 +108,86 @@ discard replicas after a timeout.</p>
 </div>
 
 </section><section>
-<h2 id="min-max-consensus">Min-max consensus</h2>
-<p>Min-max consensus algorithms are a special case of gossip, where the correct value depends <strong>on a single input</strong>. Typical cases are <em>minimum</em> and <em>maximum</em> selection.</p>
+<h3 id="time-replication">Time-replication</h3>
+<p><img src="timereplicated.png" alt="Time replication"></p>
+<p>Maintain <strong>multiple parallel gossip instances</strong>, use the oldest replica as current, discard replicas after a timeout.</p>
+<ul>
+<li>Requires a “pace-making” mechanism</li>
+<li>Trades off <em>promptness</em> and communication <em>overhead</em> to achieve <em>self-stabilization</em></li>
+</ul>
+</section><section>
+<h3 id="converge-cast--broadcast">Converge-cast + broadcast</h3>
+<p><img src="sgcg.png" alt="converge-cast + broadcast"></p>
+<p>Elect a <strong>leader</strong>, build a spanning tree, <strong>aggregate values up</strong> to the root, <strong>broadcast</strong> result down.</p>
+<ul>
+<li>Leader election and tree maintenance are costly and fragile in dynamic networks</li>
+</ul>
+</section><section>
+<h2 id="gossip-vs-min-max-consensus-aka-selector-based-consensus">Gossip vs. min-max consensus (aka selector-based consensus)</h2>
+<p>Min-max consensus is a <em>special case</em> of gossip where the correct value depends <strong>on a single input</strong>, e.g., minimum or maximum selection.</p>
+<p>In addition to <em>commutativity</em> and <em>idempotence</em>, the function must also be <strong>selective</strong>: $f(x, y) \in \{x, y\}$.</p>
+<h3 id="intuition">Intuition</h3>
+<ul>
+<li>In min-max consensus, the “best” value is determined by a single node’s input</li>
+<li>We can track the “path” of support for a value
+<ul>
+<li>This is similar to the spanning tree in converge-cast, but without a fixed leader or global structure</li>
+</ul>
+</li>
+<li>If the local device appears in the path of a candidate value, it can reject it as stale (<strong>loop detection</strong>)</li>
+</ul>
+</section><section>
+<h2 id="algorithm">Algorithm:</h2>
+<ol>
+<li>messages are in the form <code>(value, list of device ids)</code>. Start with <code>(local value, [local device id])</code></li>
+<li>observe the values shared by neighbors, <em>discard all those whose list contains your device id</em> (loop detection)</li>
+<li><em>select the best</em> value among the remaining candidates and your local one
+<ul>
+<li><em>tie-breaking</em> by shortest path and deterministic ID-based rule</li>
+</ul>
+</li>
+<li><em>share the selected</em> value with <em>your device id appended</em> to the list</li>
+</ol>
+<div class="gossip-demo" data-experiment="gossip-min">
+  <div class="gossip-demo__toolbar">
+    <span class="gossip-demo__experiment">Experiment: <strong data-output="experiment">gossip-min</strong></span>
+    <label>Devices <input data-control="nodes" type="range" min="0" max="300" step="1" value="50"> <output data-output="nodes">50</output></label>
+    <label>Communication range <input data-control="range" type="range" min="0" max="500" step="1" value="300"> <output data-output="range">300</output></label>
+    <label>Mobility <input data-control="mobility" type="range" min="0" max="2" step="0.01" value="0"> <output data-output="mobility">0</output></label>
+    <label>Tick rate <input data-control="tickrate" type="range" min="0" max="120" step="1" value="30"> <output data-output="tickrate">30</output>/s</label>
+    <button type="button" data-control="reset">Reset</button>
+    <button type="button" data-control="reset-memory">Reset memory</button>
+    <button type="button" data-control="delete">Remove selected</button>
+  </div>
+  <div class="gossip-demo__hud">
+    <span>Backend: <strong data-output="backend">loading</strong></span>
+    <span>Edges: <strong data-output="edges">0</strong></span>
+    <span>Time: <strong data-output="time">0</strong></span>
+  </div>
+  <canvas class="gossip-demo__canvas"></canvas>
+</div>
+
+</section><section>
+<h3 id="under-the-hood">Under the hood</h3>
+<div class="gossip-demo" data-experiment="track">
+  <div class="gossip-demo__toolbar">
+    <span class="gossip-demo__experiment">Experiment: <strong data-output="experiment">track</strong></span>
+    <label>Devices <input data-control="nodes" type="range" min="0" max="300" step="1" value="50"> <output data-output="nodes">50</output></label>
+    <label>Communication range <input data-control="range" type="range" min="0" max="500" step="1" value="300"> <output data-output="range">300</output></label>
+    <label>Mobility <input data-control="mobility" type="range" min="0" max="2" step="0.01" value="0"> <output data-output="mobility">0</output></label>
+    <label>Tick rate <input data-control="tickrate" type="range" min="0" max="120" step="1" value="30"> <output data-output="tickrate">30</output>/s</label>
+    <button type="button" data-control="reset">Reset</button>
+    <button type="button" data-control="reset-memory">Reset memory</button>
+    <button type="button" data-control="delete">Remove selected</button>
+  </div>
+  <div class="gossip-demo__hud">
+    <span>Backend: <strong data-output="backend">loading</strong></span>
+    <span>Edges: <strong data-output="edges">0</strong></span>
+    <span>Time: <strong data-output="time">0</strong></span>
+  </div>
+  <canvas class="gossip-demo__canvas"></canvas>
+</div>
+
 </section><section>
 <h2 id="classic-gossip-non-self-stabilizing">Classic gossip: non-self-stabilizing</h2>
 <div class="gossip-demo" data-experiment="gossip-min">
@@ -253,6 +324,25 @@ discard replicas after a timeout.</p>
 <li>practical building block for resilient coordination in dynamic systems</li>
 </ul>
 </section><section>
+<div class="gossip-demo" data-experiment="gossip-union">
+  <div class="gossip-demo__toolbar">
+    <span class="gossip-demo__experiment">Experiment: <strong data-output="experiment">gossip-union</strong></span>
+    <label>Devices <input data-control="nodes" type="range" min="0" max="300" step="1" value="15"> <output data-output="nodes">15</output></label>
+    <label>Communication range <input data-control="range" type="range" min="0" max="500" step="1" value="300"> <output data-output="range">300</output></label>
+    <label>Mobility <input data-control="mobility" type="range" min="0" max="2" step="0.01" value="0"> <output data-output="mobility">0</output></label>
+    <label>Tick rate <input data-control="tickrate" type="range" min="0" max="120" step="1" value="30"> <output data-output="tickrate">30</output>/s</label>
+    <button type="button" data-control="reset">Reset</button>
+    <button type="button" data-control="reset-memory">Reset memory</button>
+    <button type="button" data-control="delete">Remove selected</button>
+  </div>
+  <div class="gossip-demo__hud">
+    <span>Backend: <strong data-output="backend">loading</strong></span>
+    <span>Edges: <strong data-output="edges">0</strong></span>
+    <span>Time: <strong data-output="time">0</strong></span>
+  </div>
+  <canvas class="gossip-demo__canvas"></canvas>
+</div>
+
 </section>
 
   

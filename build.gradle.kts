@@ -3,7 +3,7 @@ import org.jetbrains.kotlin.gradle.targets.js.webpack.KotlinWebpackConfig
 
 plugins {
     kotlin("multiplatform") version "2.4.10"
-    id("it.unibo.collektive.collektive-plugin") version "28.3.0"
+    id("it.unibo.collektive.collektive-plugin") version "28.3.1"
 }
 
 repositories {

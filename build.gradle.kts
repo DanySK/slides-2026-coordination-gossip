@@ -23,7 +23,7 @@ kotlin {
     sourceSets {
         jsMain {
             dependencies {
-                implementation("it.unibo.collektive:collektive-dsl:28.3.0")
+                implementation("it.unibo.collektive:collektive-dsl:28.3.1")
                 implementation("it.unibo.collektive:collektive-stdlib:28.3.0")
             }
         }
